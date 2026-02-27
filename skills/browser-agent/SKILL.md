@@ -602,7 +602,7 @@ py scripts/wait_for_text.py "相关" 10
 py scripts/screenshot.py > screenshot.png.base64
 # （或直接保存为 PNG 文件）
 
-# 2. 调用 Kimi 识别（示例代码，需在 agent 脚本中实现）
+# 2. 调用视觉模型识别（示例代码，需在 agent 脚本中实现）
 image(
     image="screenshot.png",
     prompt="""
@@ -617,7 +617,7 @@ image(
 """
 )
 
-# 3. 解析 Kimi 返回的 JSON，提取 center 坐标 (x, y)
+# 3. 解析模型返回的 JSON，提取 center 坐标 (x, y)
 # 4. 点击坐标
 py scripts/click.py <x> <y>
 ```
@@ -646,8 +646,8 @@ result = image(
     "bbox": [left, top, width, height]
   }
 }
-""",
-    model="kimi-coding/k2p5"  # 使用支持图像的 Kimi
+"""
+    # 使用配置的 imageModel（默认 bailian/qwen3.5-plus）
 )
 
 # 解析
@@ -657,7 +657,7 @@ click.py(coord[0], coord[1])
 
 ### 注意事项
 
-⚠️ **Kimi 必须可用**：确保 `image` 工具已配置支持图像的模型（如 Kimi）
+⚠️ **视觉模型配置**：确保 `image` 工具已配置支持图像的模型（默认 `bailian/qwen3.5-plus`）
 ⚠️ **截图清晰**：屏幕分辨率稳定，避免模糊
 ⚠️ **置信度检查**：如果 `confidence < 0.8`，重新截图或人工介入
 ⚠️ **坐标校准**：首次使用可能需要手动验证坐标准确性
@@ -670,7 +670,7 @@ click.py(coord[0], coord[1])
 - ✅ 像人一样"看"屏幕
 
 **局限**：
-- ❌ 依赖视觉模型（Kimi）的识别精度
+- ❌ 依赖视觉模型的识别精度
 - ❌ 截图可能受分辨率、缩放影响
 - ❌ 动态内容（动画、视频）可能干扰识别
 
