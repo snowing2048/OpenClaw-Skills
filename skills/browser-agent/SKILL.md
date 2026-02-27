@@ -50,14 +50,19 @@ description: 拟人化浏览器代理。让 AI 像真人一样操作浏览器，
 
 ⚠️ **浏览器必须最大化**：打开浏览器后立即最大化，避免内容显示不全导致坐标偏差。
 
-⚠️ **Profile 选择**：默认使用 `profile="openclaw"` 避免 Chrome Relay 连接问题。
+⚠️ **Profile 选择（重要）**：
+
+| Profile | 使用场景 | 是否需要人工介入 |
+|---------|----------|------------------|
+| `openclaw`（默认） | 绝大多数自动化任务 | ❌ 不需要 |
+| `chrome` | 用户明确要求使用自己的浏览器（需要登录状态） | ✅ 需要点击扩展连接 |
 
 **标准流程**：
 ```bash
-# 1. 打开浏览器（推荐方式 - 完全自动化）
+# 1. 打开浏览器（默认使用 openclaw - 完全自动化）
 browser(action="open", profile="openclaw", targetUrl="https://...")
 
-# 或者使用 Chrome Relay（需要手动连接标签页）
+# 仅在用户明确要求时使用 chrome（需要登录状态）
 browser(action="open", profile="chrome", targetUrl="https://...")
 # ⚠️ 使用 chrome profile 时，需要用户点击扩展图标连接标签页
 
@@ -113,12 +118,12 @@ py scripts/wait_for_text.py "预期内容"
 |------|------|------|----------|
 | **`open`** | 打开新标签页 | `browser(action="open", targetUrl="https://...")` | ✅ |
 | **`close`** | 关闭浏览器会话 | `browser(action="close")` | ✅ |
-| **`start`** | 启动浏览器 | `browser(action="start", profile="chrome")` | ✅ |
+| **`start`** | 启动浏览器 | `browser(action="start", profile="openclaw")` | ✅ |
 | **`stop`** | 停止浏览器 | `browser(action="stop")` | ✅ |
 | **`focus`** | 聚焦浏览器窗口 | `browser(action="focus", targetId="...")` | ✅ |
 | **`navigate`** | 导航到 URL | `browser(action="navigate", targetUrl="...")` | ✅ |
-| **`status`** | 获取浏览器状态 | `browser(action="status", profile="chrome")` | ✅ |
-| **`tabs`** | 列出所有标签页 | `browser(action="tabs", profile="chrome")` | ✅ |
+| **`status`** | 获取浏览器状态 | `browser(action="status", profile="openclaw")` | ✅ |
+| **`tabs`** | 列出所有标签页 | `browser(action="tabs", profile="openclaw")` | ✅ |
 | **`snapshot`** | 获取页面 DOM 结构 | `browser(action="snapshot", refs="role")` | ✅ |
 | **`screenshot`** | 截图 | `browser(action="screenshot")` | ✅ |
 | **`pdf`** | 生成 PDF | `browser(action="pdf")` | ✅ |
@@ -141,7 +146,7 @@ py scripts/wait_for_text.py "预期内容"
 
 | 参数 | 类型 | 说明 | 是否常用 |
 |------|------|------|----------|
-| `profile` | `string` | 配置文件："chrome"（Relay）、"openclaw"（独立） | ⭐⭐⭐ |
+| `profile` | `string` | 配置文件：**`"openclaw"`（默认，完全自动化）**、`"chrome"`（仅用户明确要求时） | ⭐⭐⭐ |
 | `target` | `"sandbox" \| "node" \| "host"` | 执行位置 | 可选 |
 | `targetId` | `string` | 标签页 ID（从 `tabs` 获取） | ⭐⭐ |
 | `node` | `string` | 节点标识（node-hosted） | 罕见 |
@@ -675,7 +680,10 @@ click.py(coord[0], coord[1])
 
 ### 注意事项
 
-⚠️ 必须是 `profile="openclaw"`，避免使用 chrome relay（用户偏好）
+⚠️ **Profile 选择**：
+- **默认使用 `profile="openclaw"`**（完全自动化，无需人工介入）
+- **仅当用户明确要求时使用 `profile="chrome"`**（需要保留登录状态）
+
 ⚠️ `browser` 工具只用于 `snapshot`（只读），禁止 `act` 操作
 ⚠️ 坐标转换要考虑滚动偏移和浏览器窗口位置
 ⚠️ 每次浏览器窗口位置变化后需重新校准
