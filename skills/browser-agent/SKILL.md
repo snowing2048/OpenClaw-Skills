@@ -50,10 +50,16 @@ description: 拟人化浏览器代理。让 AI 像真人一样操作浏览器，
 
 ⚠️ **浏览器必须最大化**：打开浏览器后立即最大化，避免内容显示不全导致坐标偏差。
 
+⚠️ **Profile 选择**：默认使用 `profile="openclaw"` 避免 Chrome Relay 连接问题。
+
 **标准流程**：
 ```bash
-# 1. 打开浏览器
-browser(action="open", targetUrl="https://...")
+# 1. 打开浏览器（推荐方式 - 完全自动化）
+browser(action="open", profile="openclaw", targetUrl="https://...")
+
+# 或者使用 Chrome Relay（需要手动连接标签页）
+browser(action="open", profile="chrome", targetUrl="https://...")
+# ⚠️ 使用 chrome profile 时，需要用户点击扩展图标连接标签页
 
 # 2. 最大化窗口（必需！）
 py scripts/maximize_window.py "Chrome"
