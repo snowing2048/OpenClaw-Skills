@@ -1,156 +1,479 @@
-# Browser Agent Skill - 拟人化浏览器代理
+# Browser Agent Skill - 测试标准文档
 
-## 概述
+**版本：** 1.0  
+**更新日期：** 2026-02-27  
+**适用范围：** `~/.openclaw/workspace/skills/browser-agent/`
 
-AI 浏览器代理工具，让 AI 像人一样操作浏览器，绕过网站风控。
+---
 
-## 操作规范（最重要）
+## 📋 目录
 
-### 核心原则：截图 + OCR
+1. [测试环境要求](#1-测试环境要求)
+2. [功能测试](#2-功能测试)
+3. [边界测试](#3-边界测试)
+4. [性能测试](#4-性能测试)
+5. [兼容性测试](#5-兼容性测试)
+6. [安全性测试](#6-安全性测试)
+7. [回归测试](#7-回归测试)
+8. [测试报告模板](#8-测试报告模板)
 
-**每一步都用截图来分析页面，像真人一样"看"**
+---
 
-```bash
-# 1. 截图
-browser action=screenshot profile=openclaw targetId=<tab_id>
+## 1. 测试环境要求
 
-# 2. 用 image 工具分析截图
-image path=<截图路径> prompt="描述页面内容，找到搜索框和按钮"
+### 1.1 硬件要求
+
+| 项目 | 最低要求 | 推荐配置 |
+|------|----------|----------|
+| CPU | 双核 2.0GHz | 四核 3.0GHz+ |
+| 内存 | 4GB | 8GB+ |
+| 磁盘 | 10GB 可用空间 | 20GB+ SSD |
+| 分辨率 | 1920x1080 | 1920x1080 或 2560x1440 |
+
+### 1.2 软件要求
+
+| 项目 | 要求 |
+|------|------|
+| 操作系统 | Windows 10/11 |
+| Python | 3.8+ |
+| Chrome | 最新版（自动最大化支持） |
+| OpenClaw | 最新版 |
+| 依赖库 | pyautogui, Pillow |
+
+### 1.3 权限要求
+
+- ✅ 屏幕截图权限（Windows 设置 → 隐私 → 屏幕截图）
+- ✅ 鼠标键盘模拟权限
+- ✅ 文件读写权限（workspace 目录）
+
+---
+
+## 2. 功能测试
+
+### 2.1 截图功能测试 (`screenshot.py`)
+
+| 测试ID | 测试项 | 测试步骤 | 预期结果 | 优先级 |
+|--------|--------|----------|----------|--------|
+| SC-001 | 基本截图 | `py scripts/screenshot.py` | 成功生成截图文件，返回 base64 | P0 |
+| SC-002 | 指定输出目录 | `py scripts/screenshot.py -o "./test"` | 截图保存到指定目录 | P0 |
+| SC-003 | 指定文件名 | `py scripts/screenshot.py -f "custom.png"` | 使用指定文件名保存 | P1 |
+| SC-004 | 目录不存在自动创建 | `-o` 指向不存在的目录 | 自动创建目录并保存 | P1 |
+| SC-005 | 连续截图 | 连续执行 3 次截图 | 每次生成不同时间戳的文件 | P2 |
+| SC-006 | 截图格式验证 | 检查生成的文件 | 有效的 PNG 格式 | P1 |
+| SC-007 | 截图尺寸验证 | 检查截图分辨率 | 与屏幕分辨率一致 | P1 |
+| SC-008 | 多显示器支持 | 多显示器环境下截图 | 截取主显示器 | P2 |
+
+### 2.2 点击功能测试 (`click.py`)
+
+| 测试ID | 测试项 | 测试步骤 | 预期结果 | 优先级 |
+|--------|--------|----------|----------|--------|
+| CL-001 | 基本点击 | `py scripts/click.py 500 300` | 成功点击指定坐标 | P0 |
+| CL-002 | 右键点击 | `py scripts/click.py 500 300 right` | 成功右键点击 | P1 |
+| CL-003 | 双击 | `py scripts/click.py 500 300 left 2` | 成功双击 | P1 |
+| CL-004 | 多击 | `py scripts/click.py 500 300 left 3` | 成功三击 | P2 |
+| CL-005 | 指定输出目录 | `py scripts/click.py 500 300 -o "./test"` | 截图保存到指定目录 | P1 |
+| CL-006 | 前后截图生成 | 执行点击操作 | 生成 before 和 after 截图 | P0 |
+| CL-007 | 元数据生成 | 执行点击操作 | 生成 JSON 元数据文件 | P0 |
+| CL-008 | 边界坐标点击 | 点击 (0,0) 和屏幕右下角 | 成功点击边界位置 | P2 |
+| CL-009 | 负坐标处理 | `py scripts/click.py -10 -10` | 报错或自动修正 | P2 |
+| CL-010 | 超大坐标处理 | `py scripts/click.py 99999 99999` | 报错或自动修正 | P2 |
+
+### 2.3 输入功能测试 (`type_text.py`)
+
+| 测试ID | 测试项 | 测试步骤 | 预期结果 | 优先级 |
+|--------|--------|----------|----------|--------|
+| TP-001 | 基本输入 | `py scripts/type_text.py "Hello"` | 成功输入文本 | P0 |
+| TP-002 | 中文输入 | `py scripts/type_text.py "你好"` | 成功输入中文 | P0 |
+| TP-003 | 特殊字符输入 | `py scripts/type_text.py "!@#$%"` | 成功输入特殊字符 | P1 |
+| TP-004 | 长文本输入 | 输入 1000+ 字符 | 完整输入所有字符 | P1 |
+| TP-005 | 空文本处理 | `py scripts/type_text.py ""` | 报错或无操作 | P2 |
+| TP-006 | 指定输出目录 | `py scripts/type_text.py "test" -o "./test"` | 截图保存到指定目录 | P1 |
+| TP-007 | 前后截图生成 | 执行输入操作 | 生成 before 和 after 截图 | P0 |
+| TP-008 | 元数据生成 | 执行输入操作 | 生成 JSON 元数据文件 | P0 |
+| TP-009 | 输入焦点验证 | 在无焦点状态下输入 | 输入到当前焦点窗口 | P1 |
+| TP-010 | 输入法兼容性 | 中英文输入法切换下输入 | 正确输入目标文本 | P1 |
+
+### 2.4 按键功能测试 (`key_press.py`)
+
+| 测试ID | 测试项 | 测试步骤 | 预期结果 | 优先级 |
+|--------|--------|----------|----------|--------|
+| KP-001 | 单键按下 | `py scripts/key_press.py "enter"` | 成功按下回车键 | P0 |
+| KP-002 | 组合键 | `py scripts/key_press.py "ctrl+s"` | 成功按下 Ctrl+S | P0 |
+| KP-003 | 多键组合 | `py scripts/key_press.py "ctrl+shift+s"` | 成功按下多键组合 | P1 |
+| KP-004 | 功能键 | `py scripts/key_press.py "f5"` | 成功按下 F5 | P1 |
+| KP-005 | 方向键 | `py scripts/key_press.py "up"` | 成功按下方向键 | P1 |
+| KP-006 | 特殊键 | `py scripts/key_press.py "esc"` | 成功按下 Esc | P1 |
+| KP-007 | 指定输出目录 | `py scripts/key_press.py "enter" -o "./test"` | 截图保存到指定目录 | P1 |
+| KP-008 | 前后截图生成 | 执行按键操作 | 生成 before 和 after 截图 | P0 |
+| KP-009 | 元数据生成 | 执行按键操作 | 生成 JSON 元数据文件 | P0 |
+| KP-010 | 无效键名处理 | `py scripts/key_press.py "invalid_key"` | 报错或提示 | P2 |
+
+### 2.5 视觉识别测试 (`auto_screenshot.py` + `image`)
+
+| 测试ID | 测试项 | 测试步骤 | 预期结果 | 优先级 |
+|--------|--------|----------|----------|--------|
+| VR-001 | 截图模块导入 | `from auto_screenshot import AutoScreenshotter` | 成功导入模块 | P0 |
+| VR-002 | 截图器初始化 | `shot = AutoScreenshotter()` | 成功初始化 | P0 |
+| VR-003 | 截图功能 | `shot.capture("test")` | 成功截图并返回路径 | P0 |
+| VR-004 | 元数据保存 | `shot.save_metadata(...)` | 成功保存 JSON 元数据 | P0 |
+| VR-005 | 序列操作 | `shot.capture_sequence(...)` | 完整执行并返回结果 | P0 |
+| VR-006 | 视觉模型调用 | 调用 `image` 工具识别截图 | 成功返回识别结果 | P0 |
+| VR-007 | 坐标解析 | 解析视觉识别返回的坐标 | 正确解析 x, y 值 | P0 |
+| VR-008 | 多模型 fallback | 主模型失败时切换备选模型 | 成功切换并返回结果 | P1 |
+
+### 2.6 窗口管理测试
+
+| 测试ID | 测试项 | 测试步骤 | 预期结果 | 优先级 |
+|--------|--------|----------|----------|--------|
+| WM-001 | 窗口聚焦 | `py scripts/focus_window.py "Chrome"` | 成功聚焦 Chrome 窗口 | P0 |
+| WM-002 | 窗口最大化 | `py scripts/maximize_window.py "Chrome"` | 成功最大化窗口 | P0 |
+| WM-003 | 窗口最小化 | `py scripts/minimize_window.py "Chrome"` | 成功最小化窗口 | P1 |
+| WM-004 | 窗口关闭 | `py scripts/close_window.py "Chrome"` | 成功关闭窗口 | P1 |
+| WM-005 | 窗口列表 | `py scripts/list_windows.py` | 列出所有窗口 | P1 |
+| WM-006 | 活动窗口获取 | `py scripts/get_active_window.py` | 返回当前活动窗口 | P1 |
+
+---
+
+## 3. 边界测试
+
+### 3.1 坐标边界测试
+
+| 测试ID | 测试项 | 测试步骤 | 预期结果 | 优先级 |
+|--------|--------|----------|----------|--------|
+| BD-001 | 原点坐标 | `click.py 0 0` | 成功或安全处理 | P1 |
+| BD-002 | 最大分辨率坐标 | `click.py 1920 1080` | 成功或安全处理 | P1 |
+| BD-003 | 负坐标 | `click.py -100 -100` | 报错或自动修正 | P2 |
+| BD-004 | 超大坐标 | `click.py 99999 99999` | 报错或自动修正 | P2 |
+| BD-005 | 浮点坐标 | `click.py 100.5 200.5` | 自动转换为整数 | P2 |
+| BD-006 | 非数字坐标 | `click.py abc def` | 报错并提示 | P2 |
+
+### 3.2 文件路径边界测试
+
+| 测试ID | 测试项 | 测试步骤 | 预期结果 | 优先级 |
+|--------|--------|----------|----------|--------|
+| BD-007 | 空路径 | `-o ""` | 使用默认路径 | P2 |
+| BD-008 | 超长路径 | `-o "C:/.../非常长的路径/..."` | 成功或适当报错 | P2 |
+| BD-009 | 特殊字符路径 | `-o "C:/test dir/测试"` | 成功处理 | P2 |
+| BD-010 | 网络路径 | `-o "\\\\server\\share"` | 成功或适当报错 | P3 |
+| BD-011 | 只读目录 | `-o "C:/Program Files"` | 报错并提示权限 | P2 |
+
+### 3.3 输入内容边界测试
+
+| 测试ID | 测试项 | 测试步骤 | 预期结果 | 优先级 |
+|--------|--------|----------|----------|--------|
+| BD-012 | 空字符串输入 | `type_text.py ""` | 无操作或报错 | P2 |
+| BD-013 | 超长字符串 | `type_text.py` (10000+ 字符) | 完整输入或截断 | P2 |
+| BD-014 | 特殊字符 | `type_text.py "\n\t\r"` | 正确处理转义字符 | P2 |
+| BD-015 | Emoji 输入 | `type_text.py "😀😁😂"` | 成功输入或适当处理 | P2 |
+| BD-016 | Unicode 输入 | `type_text.py "مرحبا שלום"` | 成功输入或适当处理 | P2 |
+
+### 3.4 并发边界测试
+
+| 测试ID | 测试项 | 测试步骤 | 预期结果 | 优先级 |
+|--------|--------|----------|----------|--------|
+| BD-017 | 快速连续点击 | 1 秒内执行 10 次 click | 全部执行或限流 | P2 |
+| BD-018 | 并发截图 | 同时执行多个截图 | 文件不冲突 | P2 |
+| BD-019 | 大文件输出 | 连续生成 100+ 截图 | 磁盘空间检查 | P3 |
+| BD-020 | 内存占用 | 连续执行 50 次操作 | 内存不泄漏 | P2 |
+
+---
+
+## 4. 性能测试
+
+### 4.1 响应时间测试
+
+| 测试ID | 测试项 | 测试步骤 | 预期结果 | 优先级 |
+|--------|--------|----------|----------|--------|
+| PF-001 | 截图响应时间 | 执行 `screenshot.py` | < 1 秒 | P1 |
+| PF-002 | 点击响应时间 | 执行 `click.py` | < 0.5 秒 | P1 |
+| PF-003 | 输入响应时间 | 执行 `type_text.py "test"` | < 0.5 秒 | P1 |
+| PF-004 | 按键响应时间 | 执行 `key_press.py "enter"` | < 0.3 秒 | P1 |
+| PF-005 | 元数据写入时间 | 检查 JSON 生成时间 | < 0.2 秒 | P2 |
+| PF-006 | 视觉识别时间 | `image` 工具调用 | < 5 秒 | P1 |
+
+### 4.2 资源占用测试
+
+| 测试ID | 测试项 | 测试步骤 | 预期结果 | 优先级 |
+|--------|--------|----------|----------|--------|
+| PF-007 | CPU 占用 | 执行操作时监控 CPU | < 20% | P2 |
+| PF-008 | 内存占用 | 执行操作时监控内存 | < 200MB | P2 |
+| PF-009 | 磁盘 IO | 连续截图 10 次 | 无异常延迟 | P2 |
+| PF-010 | 文件数量 | 执行 100 次操作 | 文件管理正常 | P2 |
+
+### 4.3 稳定性测试
+
+| 测试ID | 测试项 | 测试步骤 | 预期结果 | 优先级 |
+|--------|--------|----------|----------|--------|
+| PF-011 | 长时间运行 | 连续运行 1 小时 | 无崩溃无泄漏 | P1 |
+| PF-012 | 高频操作 | 每分钟 60 次操作，持续 10 分钟 | 稳定执行 | P2 |
+| PF-013 | 内存泄漏检测 | 运行前后对比内存 | 无明显增长 | P1 |
+| PF-014 | 文件句柄泄漏 | 运行后检查文件句柄 | 无泄漏 | P2 |
+
+---
+
+## 5. 兼容性测试
+
+### 5.1 操作系统兼容性
+
+| 测试ID | 测试项 | 测试环境 | 预期结果 | 优先级 |
+|--------|--------|----------|----------|--------|
+| CP-001 | Windows 10 | Windows 10 21H2+ | 全部功能正常 | P0 |
+| CP-002 | Windows 11 | Windows 11 | 全部功能正常 | P1 |
+| CP-003 | 不同分辨率 | 1920x1080, 2560x1440, 3840x2160 | 坐标正确 | P1 |
+| CP-004 | 多显示器 | 双显示器环境 | 主显示器操作正常 | P2 |
+| CP-005 | 缩放比例 | 100%, 125%, 150% 缩放 | 坐标正确 | P2 |
+
+### 5.2 浏览器兼容性
+
+| 测试ID | 测试项 | 测试环境 | 预期结果 | 优先级 |
+|--------|--------|----------|----------|--------|
+| CP-006 | Chrome | Chrome 最新版 | 全部功能正常 | P0 |
+| CP-007 | Edge | Edge 最新版 | 全部功能正常 | P1 |
+| CP-008 | Firefox | Firefox 最新版 | 基本功能正常 | P2 |
+| CP-009 | 浏览器版本 | Chrome 旧版本 | 基本功能正常 | P2 |
+
+### 5.3 Python 环境兼容性
+
+| 测试ID | 测试项 | 测试环境 | 预期结果 | 优先级 |
+|--------|--------|----------|----------|--------|
+| CP-010 | Python 3.8 | Python 3.8.x | 全部功能正常 | P1 |
+| CP-011 | Python 3.9 | Python 3.9.x | 全部功能正常 | P1 |
+| CP-012 | Python 3.10+ | Python 3.10+ | 全部功能正常 | P1 |
+| CP-013 | 依赖库版本 | pyautogui 最新版 | 正常 | P2 |
+| CP-014 | 依赖库版本 | Pillow 最新版 | 正常 | P2 |
+
+---
+
+## 6. 安全性测试
+
+### 6.1 输入验证
+
+| 测试ID | 测试项 | 测试步骤 | 预期结果 | 优先级 |
+|--------|--------|----------|----------|--------|
+| SC-001 | 命令注入 | `type_text.py "$(whoami)"` | 作为普通文本处理 | P0 |
+| SC-002 | 路径遍历 | `-o "../../../etc"` | 限制在允许目录 | P0 |
+| SC-003 | SQL 注入 | 不适用（无数据库） | N/A | P3 |
+| SC-004 | 特殊字符转义 | 输入含 `\0` 等字符 | 安全处理 | P1 |
+
+### 6.2 权限控制
+
+| 测试ID | 测试项 | 测试步骤 | 预期结果 | 优先级 |
+|--------|--------|----------|----------|--------|
+| SC-005 | 文件写入权限 | 写入只读目录 | 报错并提示 | P0 |
+| SC-006 | 敏感目录访问 | 访问系统目录 | 限制或报错 | P1 |
+| SC-007 | 截图权限 | 无截图权限时 | 报错并提示 | P0 |
+
+### 6.3 数据安全
+
+| 测试ID | 测试项 | 测试步骤 | 预期结果 | 优先级 |
+|--------|--------|----------|----------|--------|
+| SC-008 | 敏感信息截图 | 截图含密码等敏感信息 | 用户自行负责 | P2 |
+| SC-009 | 元数据清理 | 测试后清理临时文件 | 提供清理脚本 | P2 |
+| SC-010 | 日志安全 | 检查日志文件 | 不含敏感信息 | P2 |
+
+---
+
+## 7. 回归测试
+
+### 7.1 核心功能回归
+
+| 测试ID | 测试项 | 触发条件 | 测试范围 | 优先级 |
+|--------|--------|----------|----------|--------|
+| RG-001 | 截图功能 | 每次代码变更 | SC-001 ~ SC-008 | P0 |
+| RG-002 | 点击功能 | 每次代码变更 | CL-001 ~ CL-010 | P0 |
+| RG-003 | 输入功能 | 每次代码变更 | TP-001 ~ TP-010 | P0 |
+| RG-004 | 按键功能 | 每次代码变更 | KP-001 ~ KP-010 | P0 |
+| RG-005 | 视觉识别 | 每次代码变更 | VR-001 ~ VR-008 | P0 |
+
+### 7.2 完整流程回归
+
+| 测试ID | 测试项 | 测试步骤 | 预期结果 | 优先级 |
+|--------|--------|----------|----------|--------|
+| RG-006 | 百度搜索流程 | 截图→识别→点击→输入→搜索 | 完整流程成功 | P0 |
+| RG-007 | Google 搜索流程 | 截图→识别→点击→输入→搜索 | 完整流程成功 | P0 |
+| RG-008 | 表单填写流程 | 多字段输入→提交 | 完整流程成功 | P1 |
+| RG-009 | 多页面导航 | 打开→导航→操作→返回 | 完整流程成功 | P1 |
+
+### 7.3 版本升级回归
+
+| 测试ID | 测试项 | 触发条件 | 测试范围 | 优先级 |
+|--------|--------|----------|----------|--------|
+| RG-010 | OpenClaw 升级 | OpenClaw 版本更新 | 全部 P0 测试 | P0 |
+| RG-011 | Python 升级 | Python 版本更新 | 全部 P0 测试 | P0 |
+| RG-012 | 依赖库升级 | pyautogui/Pillow 更新 | 全部 P0 测试 | P0 |
+
+---
+
+## 8. 测试报告模板
+
+### 8.1 单次测试报告
+
+```markdown
+# 测试报告
+
+**测试日期：** YYYY-MM-DD  
+**测试人员：** [姓名]  
+**测试版本：** [版本号]  
+**测试环境：** [操作系统/Python 版本/浏览器版本]
+
+## 测试摘要
+
+| 类别 | 总数 | 通过 | 失败 | 跳过 |
+|------|------|------|------|------|
+| 功能测试 | | | | |
+| 边界测试 | | | | |
+| 性能测试 | | | | |
+| 兼容性测试 | | | | |
+| 安全性测试 | | | | |
+| **总计** | | | | |
+
+## 失败用例详情
+
+| 测试ID | 测试项 | 失败原因 | 严重程度 |
+|--------|--------|----------|----------|
+| | | | |
+
+## 问题与建议
+
+### 发现的问题
+1. ...
+
+### 改进建议
+1. ...
+
+## 测试结论
+
+[ ] 通过，可以发布  
+[ ] 有条件通过，需修复以下问题：...  
+[ ] 不通过，需重新测试
+
+**签字：** _______________  **日期：** _______________
 ```
 
-### 为什么不用 snapshot？
+### 8.2 自动化测试脚本
 
-- 直接用 snapshot 读取页面结构会被网站风控检测到
-- 必须用截图 + OCR 来模拟人眼查看页面
-- 这样才能绕过严格的风控（如淘宝、京东等）
+```python
+#!/usr/bin/env python3
+"""
+Browser Agent Skill - 自动化测试脚本
+运行所有测试用例并生成报告
+"""
 
-### 点击方式
+import subprocess
+import json
+import time
+from datetime import datetime
+from pathlib import Path
 
-使用 windows-control 的 Python 脚本通过文字点击：
+class TestRunner:
+    def __init__(self):
+        self.results = {
+            "date": datetime.now().isoformat(),
+            "passed": [],
+            "failed": [],
+            "skipped": []
+        }
+    
+    def run_test(self, test_id, command, expected_exit_code=0):
+        """运行单个测试"""
+        try:
+            result = subprocess.run(
+                command,
+                shell=True,
+                capture_output=True,
+                text=True,
+                timeout=30
+            )
+            
+            if result.returncode == expected_exit_code:
+                self.results["passed"].append(test_id)
+                return True
+            else:
+                self.results["failed"].append({
+                    "test_id": test_id,
+                    "error": result.stderr
+                })
+                return False
+        except Exception as e:
+            self.results["failed"].append({
+                "test_id": test_id,
+                "error": str(e)
+            })
+            return False
+    
+    def generate_report(self, output_path):
+        """生成测试报告"""
+        report = f"""# 自动化测试报告
 
-```bash
-# 通过文字点击（像人一样看图点击）
-py click_text.py "百度一下"
-py click_text.py "搜索"
-py click_text.py "登录"
+**生成时间：** {self.results['date']}
+
+## 结果摘要
+
+- 通过：{len(self.results['passed'])}
+- 失败：{len(self.results['failed'])}
+- 跳过：{len(self.results['skipped'])}
+
+## 失败详情
+
+{json.dumps(self.results['failed'], indent=2)}
+"""
+        
+        Path(output_path).write_text(report, encoding='utf-8')
+        return output_path
+
+if __name__ == "__main__":
+    runner = TestRunner()
+    
+    # 运行测试
+    runner.run_test("SC-001", "py scripts/screenshot.py")
+    runner.run_test("CL-001", "py scripts/click.py 500 300")
+    runner.run_test("TP-001", "py scripts/type_text.py \"test\"")
+    runner.run_test("KP-001", "py scripts/key_press.py \"enter\"")
+    
+    # 生成报告
+    report_path = runner.generate_report("test_report.md")
+    print(f"测试报告已生成：{report_path}")
 ```
 
-### 键盘输入
+---
+
+## 📝 附录
+
+### A. 测试数据准备
 
 ```bash
-# 输入文字（先切换到英文输入法）
-py type_text.py "人工智能"
+# 创建测试目录结构
+mkdir -p tmp/_artifacts/screenshots
+mkdir -p tmp/_artifacts/captures
+mkdir -p tmp/_artifacts/json
+mkdir -p tmp/_ops/scripts
+
+# 准备测试网站
+# - https://www.baidu.com/
+# - https://www.google.com/
+# - 本地测试页面
 ```
 
-### 页面滚动
+### B. 测试环境检查清单
 
-```bash
-# 滚动页面（像人一样）
-py scroll.py down 3
-py scroll.py up 5
-```
+- [ ] Python 版本 >= 3.8
+- [ ] pyautogui 已安装
+- [ ] Pillow 已安装
+- [ ] Chrome 已安装并设为默认
+- [ ] 屏幕截图权限已授权
+- [ ] 工作区目录可写
+- [ ] 网络连接正常
 
-### 浏览器要求
+### C. 常见问题排查
 
-- 保持浏览器纯净，不安装任何插件
-- 不使用任何辅助工具
-- 像真人一样用眼睛看、用鼠标点
+| 问题 | 可能原因 | 解决方案 |
+|------|----------|----------|
+| 截图失败 | 无权限 | 以管理员身份运行或授权截图权限 |
+| 点击无反应 | 窗口未聚焦 | 先执行 `focus_window.py` |
+| 输入乱码 | 输入法问题 | 切换到英文输入法 |
+| 坐标偏移 | 缩放比例 | 调整坐标或使用视觉识别 |
 
-## 异常处理
+---
 
-### 登录限制
-- 识别登录弹窗：截图 + OCR 分析
-- 提醒用户并询问是否需要登录
-- 可尝试直接访问搜索 URL 绕过
-
-### 页面状态识别
-
-| 状态 | 特征 | 处理 |
-|------|------|------|
-| 登录弹窗 | 登录框、二维码 | 截图分析 → 提醒用户 |
-| 加载中 | loading、spinner | 截图分析 → 等待 |
-| 验证码 | 滑动验证 | 截图分析 → 提醒用户 |
-
-## 测试用例
-
-### Task 1: 百度搜索（正确方式）
-
-```bash
-# 1. 打开百度
-browser action=open profile=openclaw target=host url=https://www.baidu.com
-browser action=act profile=openclaw targetId=<tab> kind=wait timeMs=2000
-
-# 2. 截图分析页面
-browser action=screenshot profile=openclaw targetId=<tab>
-image path=<截图路径> prompt="描述页面内容，找到搜索框和搜索按钮的位置"
-
-# 3. 点击搜索框（通过文字）
-py click_text.py "请输入"
-
-# 4. 输入关键词
-py type_text.py "人工智能"
-
-# 5. 点击搜索按钮（通过文字）
-py click_text.py "百度一下"
-
-# 6. 等待结果
-browser action=act profile=openclaw targetId=<tab> kind=wait timeMs=2000
-
-# 7. 截图分析结果
-browser action=screenshot profile=openclaw targetId=<tab>
-image path=<截图路径> prompt="描述搜索结果，找到第一个链接"
-
-# 8. 点击第一个结果（通过文字）
-py click_text.py "人工智能 - 百度百科"
-
-# 9. 验证到达目标页面
-browser action=screenshot profile=openclaw targetId=<tab>
-```
-
-### Task 2: 淘宝搜索（需登录）
-
-```bash
-# 1. 打开淘宝
-browser action=open profile=openclaw target=host url=https://www.taobao.com
-browser action=act profile=openclaw targetId=<tab> kind=wait timeMs=3000
-
-# 2. 截图分析
-browser action=screenshot profile=openclaw targetId=<tab>
-image path=<截图路径> prompt="描述页面内容，是否有登录弹窗"
-
-# 3. 识别登录限制 → 提醒用户
-```
-
-### Task 3: Wikipedia 信息提取
-
-```bash
-# 1. 打开 Wikipedia
-browser action=open profile=openclaw target=host url=https://en.wikipedia.org/wiki/Artificial_intelligence
-browser action=act profile=openclaw targetId=<tab> kind=wait timeMs=3000
-
-# 2. 截图分析
-browser action=screenshot profile=openclaw targetId=<tab>
-image path=<截图路径> prompt="描述页面标题和主要内容"
-
-# 3. 滚动浏览
-py scroll.py down 3
-
-# 4. 继续截图分析
-browser action=screenshot profile=openclaw targetId=<tab>
-image path=<截图路径> prompt="描述当前页面内容"
-```
-
-## 测试验证
-
-| 任务 | 网站 | 结果 |
-|------|------|------|
-| 搜索测试 | 百度 | ✅ 截图+OCR方式 |
-| 电商搜索 | 淘宝 | ✅ 识别登录限制 |
-| 信息提取 | Wikipedia | ✅ 截图+OCR方式 |
-
-## 通过标准
-
-- P0: 截图 + OCR 分析 100% 使用
-- P1: 通过文字点击（click_text.py）100% 使用
-- P2: 登录限制识别正确提醒用户
-- 浏览器保持纯净，无插件
+**文档维护：** 每次功能更新后同步更新测试标准  
+**审核周期：** 每季度审核一次测试标准

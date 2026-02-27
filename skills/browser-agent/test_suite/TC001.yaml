@@ -1,0 +1,51 @@
+---
+id: TC001
+name: 百度搜索 - 基础流程测试
+description: 测试最基本的网页搜索操作：打开百度、输入关键词、搜索、点击第一个结果
+category: basic
+priority: P0 - Critical
+
+preconditions:
+  - Chrome 浏览器已安装
+  - 浏览器窗口未打开或可新建
+  - 网络连接正常
+  - 屏幕分辨率 1920x1080 或 2560x1440
+
+steps:
+  - 1: focus_window "Chrome"           # 确保浏览器聚焦
+  - 2: execute "start chrome https://www.baidu.com"  # 启动并访问
+  - 3: wait_for_text "百度一下" 15      # 等待页面加载
+  - 4: click_element "搜索框"           # 点击搜索框（使用元素定位）
+  - 5: input_method "en"                # 切换到英文输入法
+  - 6: type_text "AI"                   # 输入搜索关键词
+  - 7: key_press "enter"                # 按回车搜索
+  - 8: wait_for_text "相关" 15          # 等待搜索结果
+  - 9: read_webpage "百度"              # 读取结果页内容
+  - 10: click_element "第一个结果"      # 点击第一个结果（需根据分析确定文字）
+
+expected_results:
+  - url_contains: "wd=AI"               # URL 应包含搜索词
+  - element_exists: "相关" or "百度"    # 结果页应显示相关词
+  - page_title_changed: true           # 标题应变化（说明跳转）
+  - duration_seconds: {min: 8, max: 30} # 总耗时（人类 5-10s）
+  - mouse_points_count: {min: 5}       # 鼠标移动至少 5 个点
+  - input_accuracy: 100%               # 输入内容准确
+  - failures_count: {max: 3}           # 最多重试 3 次
+  - no_crash: true                     # 不能崩溃
+
+validation_commands:
+  - command: "py scripts/read_window.py \"百度\""
+    expect_contains: ["AI", "相关"]
+  - command: "py scripts/list_windows.py"
+    expect_count_change: 1  # 窗口数不变或增加
+
+failure_criteria:
+  - screenshot_failed: true
+  - element_notfound_after_retry: true
+  - timeout_exceeded: true
+  - crash_or_freeze: true
+
+metadata:
+  created: "2026-02-26"
+  author: "HomeClaw"
+  tags: ["basic", "search", "validation"]
